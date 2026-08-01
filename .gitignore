@@ -1,0 +1,41 @@
+# Виртуальное окружение
+venv/
+venv312/
+env/
+ENV/
+
+# Файлы Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Логи и базы данных
+*.log
+*.sqlite3
+
+# Переменные окружения (секреты)
+.env
+
+# Статические файлы (инструкции, если они большие)
+static/manuals/*.pdf
+static/manuals/*.rar
+!static/manuals/.gitkeep   # опционально, чтобы сохранить папку
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS метаданные
+.DS_Store
+Thumbs.db
+
+# Файлы данных 
+scripts/data/*.json
+
+# Идеи
+(delete_in_relise) ideas/

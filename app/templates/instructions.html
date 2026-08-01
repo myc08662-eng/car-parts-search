@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Инструкции</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; margin:0; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; text-align: center; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        .card { background: white; border-radius: 15px; padding: 25px; margin-bottom: 25px; }
+        .btn { display: inline-block; background: #e53e3e; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; }
+        .btn-back { background: #666; margin-bottom: 20px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="header"><h1>Инструкции</h1><p>{{ car_name }}</p></div>
+    <div class="container">
+        <a href="/" class="btn btn-back">Назад</a>
+        {% for inst in instructions %}
+        <div class="card">
+            <h3>{{ inst.title }}</h3>
+            <p>{{ inst.description or "Пошаговое руководство" }}</p>
+            <a href="{{ inst.file_path }}" class="btn" target="_blank">Скачать PDF</a>
+        </div>
+        {% else %}
+        <p>Инструкции не добавлены</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

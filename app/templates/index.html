@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск автозапчастей</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 60px 20px; text-align: center; }
+        .search-box { background: white; border-radius: 50px; padding: 10px 20px; max-width: 700px; margin: 30px auto 0; display: flex; gap: 10px; }
+        .search-box input { flex: 3; border: none; padding: 15px; font-size: 1rem; outline: none; }
+        .search-box select { flex: 1; border: none; padding: 15px; font-size: 1rem; background: #f5f5f5; border-radius: 50px; }
+        .search-box button { background: #667eea; border: none; padding: 15px 30px; border-radius: 50px; color: white; cursor: pointer; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .price { font-size: 1.5rem; color: #e53e3e; font-weight: bold; margin: 10px 0; }
+        .url { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; margin-right: 15px; }
+        .no-results { text-align: center; padding: 60px; background: white; border-radius: 20px; }
+        .footer { text-align: center; padding: 40px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Поиск автозапчастей</h1>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Масляный фильтр Corolla" autocomplete="off">
+            <select id="categorySelect"></select>
+            <button onclick="search()">Найти</button>
+        </div>
+    </div>
+    <div class="container">
+        <div id="results" class="results">
+            <div class="no-results">Введите запрос</div>
+        </div>
+    </div>
+    <div class="footer"> Поиск автозапчастей</div>
+
+    <script>
+        async function loadCategories() {
+            const res = await fetch('/api/categories');
+            const cats = await res.json();
+            const select = document.getElementById('categorySelect');
+            select.innerHTML = '<option value="">Все категории</option>';
+            cats.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.name;
+                option.textContent = cat.name;
+                select.appendChild(option);
+            });
+        }
+        loadCategories();
+
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') search(); });
+
+        async function search() {
+            const query = searchInput.value.trim();
+            const category = document.getElementById('categorySelect').value;
+            const resultsDiv = document.getElementById('results');
+            if (query.length < 2) {
+                resultsDiv.innerHTML = '<div class="no-results">Введите хотя бы 2 символа</div>';
+                return;
+            }
+            resultsDiv.innerHTML = '<div class="no-results">Поиск...</div>';
+            try {
+                const response = await fetch(`/api/search/ai?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    let html = `<p>Найдено ${data.count} результатов</p>`;
+                    for (const item of data.results) {
+                        const safePart = escapeHtml(item.part_name);
+                        const safeCar = escapeHtml(item.car_name);
+                        const safeCat = escapeHtml(item.category);
+                        const safeVendor = escapeHtml(item.vendor);
+                        const safeUrl = escapeUrl(item.url);
+                        html += `
+                            <div class="card">
+                                <div><strong>${safePart}</strong></div>
+                                <div>${safeCar} | ${safeCat}</div>
+                                <div class="price">${item.price} ₽</div>
+                                <div>${safeVendor}</div>
+                                <a href="${safeUrl}" class="url" target="_blank">Перейти</a>
+                                <a href="/instructions/${item.car_id}" class="url">📖 Инструкции</a>
+                            </div>
+                        `;
+                    }
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<div class="no-results">Ничего не найдено для "${escapeHtml(query)}"</div>`;
+                }
+            } catch (err) {
+                console.error(err);
+                resultsDiv.innerHTML = '<div class="no-results">Ошибка при поиске</div>';
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        function escapeUrl(url) {
+            if (!url) return '#';
+            try {
+                const u = new URL(url);
+                if (u.protocol !== 'http:' && u.protocol !== 'https:') return '#';
+                return url;
+            } catch(e) { return '#'; }
+        }
+    </script>
+</body>
+</html>
