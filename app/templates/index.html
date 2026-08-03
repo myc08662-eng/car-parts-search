@@ -68,28 +68,41 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 if (data.results && data.results.length > 0) {
-                    let html = `<p>Найдено ${data.count} результатов</p>`;
-                    for (const item of data.results) {
-                        const safePart = escapeHtml(item.part_name);
-                        const safeCar = escapeHtml(item.car_name);
-                        const safeCat = escapeHtml(item.category);
-                        const safeVendor = escapeHtml(item.vendor);
-                        const safeUrl = escapeUrl(item.url);
-                        html += `
-                            <div class="card">
-                                <div><strong>${safePart}</strong></div>
-                                <div>${safeCar} | ${safeCat}</div>
-                                <div class="price">${item.price} ₽</div>
-                                <div>${safeVendor}</div>
-                                <a href="${safeUrl}" class="url" target="_blank">Перейти</a>
-                                <a href="/instructions/${item.car_id}" class="url">📖 Инструкции</a>
-                            </div>
-                        `;
+                let html = `<p>Найдено ${data.count} результатов</p>`;
+                for (const item of data.results) {
+                   const safePart = escapeHtml(item.part_name);
+                   const safeCar = escapeHtml(item.car_name);
+                   const safeCat = escapeHtml(item.category);
+                   const safeVendor = escapeHtml(item.vendor);
+                   const safeUrl = escapeUrl(item.url);
+    
+                   const MIN_REAL_PRICE = 50;
+                   let displayPrice = item.parsed_price;
+                   let priceLabel = 'Актуальная цена';
+                if (!displayPrice || displayPrice < MIN_REAL_PRICE) {
+                     displayPrice = item.original_price;
+                     priceLabel = 'Цена при загрузке (запасная)';
                     }
-                    resultsDiv.innerHTML = html;
-                } else {
-                    resultsDiv.innerHTML = `<div class="no-results">Ничего не найдено для "${escapeHtml(query)}"</div>`;
-                }
+
+               html += `
+               <div class="card">
+               <div><strong>${safePart}</strong></div>
+               <div>${safeCar} | ${safeCat}</div>
+               <div class="price">
+                  ${displayPrice ? displayPrice + ' ₽' : 'Цена неизвестна'}
+                  <small style="display:block;font-size:0.7rem;color:#888;">${priceLabel}</small>
+                  ${item.price_updated_at ? `<small style="display:block;font-size:0.7rem;color:#888;">Обновлено: ${new Date(item.price_updated_at).toLocaleString()}</small>` : ''}
+               </div>
+               <div>${safeVendor}</div>
+               <a href="${safeUrl}" class="url" target="_blank">Перейти</a>
+               <a href="/instructions/${item.car_id}" class="url">📖 Инструкции</a>
+            </div>
+        `;
+    }
+    resultsDiv.innerHTML = html;
+} else {
+    resultsDiv.innerHTML = `<div class="no-results">Ничего не найдено для "${escapeHtml(query)}"</div>`;
+}
             } catch (err) {
                 console.error(err);
                 resultsDiv.innerHTML = '<div class="no-results">Ошибка при поиске</div>';

@@ -19,7 +19,7 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("Загрузка поискового индекса...")
+    logger.info("Загрузка поискового индекса")
     try:
         parts = part_repo.get_all_parts_with_links()
         if parts:

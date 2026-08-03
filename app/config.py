@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     DB_NAME: str = "car_parts_db"
     TFIDF_SIMILARITY_THRESHOLD: float = 0.05
     SEARCH_MIN_QUERY_LEN: int = 2
+    MIN_REAL_PRICE: int = 50
 
     class Config:
         env_file = ".env"
