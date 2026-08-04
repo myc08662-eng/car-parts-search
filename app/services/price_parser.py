@@ -107,6 +107,10 @@ def parse_price(url: str) -> float | None:
 
         # Список селекторов для поиска цены
         price_selectors = [
+            'div.PriceBlock_Price__akF5O',
+            'i.bp-price',
+            'div.price__value',
+            'span.Price_value__IsrEW',
             'span.only_price',
             'div.panel-price__price__value',
             'div.section-price__price__new',

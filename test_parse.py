@@ -6,7 +6,7 @@ from app.services.price_parser import parse_price
 import httpx
 from bs4 import BeautifulSoup
 
-url = "https://shop.polosedan.ru/index.php?route=product/product&product_id=280"
+url = "https://barnaul.koleso.ru/catalog/product/filtron-filtr-vozdushnyiy-ap-122-8-hyundai-solaris--kia-rio-1-6i-11/"
 
 # Сначала проверим, что страница загружается и цена видна
 headers = {
@@ -53,6 +53,11 @@ with httpx.Client(timeout=15.0, follow_redirects=True) as client:
         print(f"Span с only_price найден, текст={only_price.get_text(strip=True)}")
     else:
         print("Span с only_price не найден")
+    price_vavto = soup.select_one('span.Price_value__IsrEW')
+    if price_vavto:
+        print(f"Span с Price_value__IsrEW найден, текст={price_vavto.get_text(strip=True)}")
+    else:
+        print("Span с Price_value__IsrEW не найден")
 
 # Теперь вызываем парсер
 price = parse_price(url)
