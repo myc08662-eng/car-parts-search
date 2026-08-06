@@ -9,3 +9,5 @@ python-multipart==0.0.12
 pytest==8.3.0
 httpx==0.28.1
 beautifulsoup4==4.13.3
+pytest-mock==3.14.0
+pytest-benchmark==4.0.0

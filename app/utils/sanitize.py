@@ -1,4 +1,5 @@
 import html
+from urllib.parse import urlparse
 
 def escape_html(text: str) -> str:
     if not text:
@@ -8,6 +9,10 @@ def escape_html(text: str) -> str:
 def sanitize_url(url: str) -> str:
     if not url:
         return "#"
-    if url.lower().startswith(("javascript:", "data:")):
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return "#"
+        return url
+    except Exception:
         return "#"
-    return url

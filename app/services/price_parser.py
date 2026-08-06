@@ -65,7 +65,6 @@ def parse_price(url: str) -> float | None:
         if json_ld:
             try:
                 data = json.loads(json_ld.string)
-                # Ищем цену в offers.price
                 if 'offers' in data and isinstance(data['offers'], dict):
                     price = data['offers'].get('price')
                     if price is not None:
@@ -75,7 +74,7 @@ def parse_price(url: str) -> float | None:
                                 return round(price, 2)
                         except (ValueError, TypeError):
                             pass
-                # Если offers – список (бывает), перебираем
+                # Если offers список перебираем
                 elif 'offers' in data and isinstance(data['offers'], list):
                     for offer in data['offers']:
                         if 'price' in offer:
@@ -130,7 +129,10 @@ def parse_price(url: str) -> float | None:
         for selector in price_selectors:
             elem = soup.select_one(selector)
             if elem:
-                price_text = elem.get_text(strip=True)
+                if elem.name == 'meta' and elem.get('content'):
+                    price_text = elem['content']
+                else:
+                    price_text = elem.get_text(strip=True)
                 break
 
         if not price_text:

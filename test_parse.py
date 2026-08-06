@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 
 url = "https://barnaul.koleso.ru/catalog/product/filtron-filtr-vozdushnyiy-ap-122-8-hyundai-solaris--kia-rio-1-6i-11/"
 
-# Сначала проверим, что страница загружается и цена видна
 headers = {
     'User-Agent': 'Mozilla/5.0 ...',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -19,13 +18,11 @@ headers = {
 with httpx.Client(timeout=15.0, follow_redirects=True) as client:
     response = client.get(url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
-    # Ищем мета-тег напрямую
     meta = soup.select_one('meta[property="product:price:amount"]')
     if meta:
         print(f"Мета-тег найден, content={meta.get('content')}")
     else:
         print("Мета-тег не найден")
-    # Ищем span
     span = soup.select_one('span.c-product-management__price')
     div_price = soup.select_one('div.section-price__price__new')
     if div_price:
@@ -59,6 +56,5 @@ with httpx.Client(timeout=15.0, follow_redirects=True) as client:
     else:
         print("Span с Price_value__IsrEW не найден")
 
-# Теперь вызываем парсер
 price = parse_price(url)
 print(f"Распарсенная цена: {price}")

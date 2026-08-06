@@ -4,6 +4,8 @@ from app.main import app
 from app.database import get_db_connection
 from app.services.tfidf_search import TFIDFSearch
 from app.services import search_service
+import mysql.connector
+import os
 
 @pytest.fixture
 def client():
@@ -38,3 +40,67 @@ def mock_search_engine(mocker):
     ]
     mocker.patch('app.services.search_service.search_engine', mock_engine)
     return mock_engine
+
+@pytest.fixture(scope='session')
+def test_db():
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database=''
+    )
+    cursor = conn.cursor()
+    cursor.execute("DROP DATABASE IF EXISTS test_car_parts_db")
+    cursor.execute("CREATE DATABASE test_car_parts_db")
+    cursor.close()
+    conn.close()
+
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database='test_car_parts_db'
+    )
+    cursor = conn.cursor()
+    schema_path = os.path.join(os.path.dirname(__file__), '..', 'schema.sql')
+    with open(schema_path, 'r', encoding='utf-8') as f:
+        sql = f.read()
+        for statement in sql.split(';'):
+            if statement.strip():
+                cursor.execute(statement)
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database='test_car_parts_db'
+    )
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO cars (brand, model, generation) VALUES ('Test', 'Car', '1')")
+    cursor.execute("INSERT INTO categories (name) VALUES ('Тестовая категория')")
+    cursor.execute("INSERT INTO parts (name, category_id) VALUES ('Тестовая деталь', 1)")
+    cursor.execute("INSERT INTO part_links (part_id, car_id, url, price, vendor) VALUES (1, 1, 'https://example.com', 1000, 'TestVendor')")
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    yield {
+        'host': 'localhost',
+        'user': 'root',
+        'password': '',
+        'database': 'test_car_parts_db'
+    }
+
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database=''
+    )
+    cursor = conn.cursor()
+    cursor.execute("DROP DATABASE IF EXISTS test_car_parts_db")
+    cursor.close()
+    conn.close()

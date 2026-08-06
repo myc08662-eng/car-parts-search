@@ -23,7 +23,7 @@ build/
 # Статические файлы (инструкции, если они большие)
 static/manuals/*.pdf
 static/manuals/*.rar
-!static/manuals/.gitkeep   # опционально, чтобы сохранить папку
+!static/manuals/.gitkeep   
 
 # IDE
 .vscode/
@@ -36,6 +36,9 @@ Thumbs.db
 
 # Файлы данных 
 scripts/data/*.json
+.benchmarks/
 
 # Идеи
 (delete_in_relise) ideas/
+
+.pytest_cache/
