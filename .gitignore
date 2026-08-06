@@ -42,3 +42,7 @@ scripts/data/*.json
 (delete_in_relise) ideas/
 
 .pytest_cache/
+
+# Тестовые файлы
+test_parse.py
+test_ruli.py
