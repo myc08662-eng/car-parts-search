@@ -4,7 +4,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import logging
 import os
-
 from app.config import get_settings
 from app.templating import templates
 from app.routers import search, instructions, categories
