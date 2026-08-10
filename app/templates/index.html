@@ -18,6 +18,9 @@
         .url { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; margin-right: 15px; }
         .no-results { text-align: center; padding: 60px; background: white; border-radius: 20px; }
         .footer { text-align: center; padding: 40px; color: #666; }
+        #pagination button { padding: 8px 16px; margin: 0 5px; border: none; background: #667eea; color: white; border-radius: 20px; cursor: pointer; }
+        #pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        #pagination span { margin: 0 15px; }
     </style>
 </head>
 <body>
@@ -26,15 +29,20 @@
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="Масляный фильтр Corolla" autocomplete="off">
             <select id="categorySelect"></select>
-            <button onclick="search()">Найти</button>
+            <button onclick="search(1)">Найти</button>
         </div>
     </div>
     <div class="container">
         <div id="results" class="results">
             <div class="no-results">Введите запрос</div>
         </div>
+        <div id="pagination" style="display: none; margin-top: 20px; text-align: center;">
+            <button id="prevPage" onclick="changePage(-1)">◀ Назад</button>
+            <span id="pageInfo">Страница 1 из 1</span>
+            <button id="nextPage" onclick="changePage(1)">Вперёд ▶</button>
+        </div>
     </div>
-    <div class="footer"> Поиск автозапчастей</div>
+    <div class="footer">Поиск автозапчастей</div>
 
     <script>
         async function loadCategories() {
@@ -52,62 +60,13 @@
         loadCategories();
 
         const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') search(); });
+        searchInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') search(1); });
 
-        async function search() {
-            const query = searchInput.value.trim();
-            const category = document.getElementById('categorySelect').value;
-            const resultsDiv = document.getElementById('results');
-            if (query.length < 2) {
-                resultsDiv.innerHTML = '<div class="no-results">Введите хотя бы 2 символа</div>';
-                return;
-            }
-            resultsDiv.innerHTML = '<div class="no-results">Поиск...</div>';
-            try {
-                const response = await fetch(`/api/search/ai?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                if (data.results && data.results.length > 0) {
-                let html = `<p>Найдено ${data.count} результатов</p>`;
-                for (const item of data.results) {
-                   const safePart = escapeHtml(item.part_name);
-                   const safeCar = escapeHtml(item.car_name);
-                   const safeCat = escapeHtml(item.category);
-                   const safeVendor = escapeHtml(item.vendor);
-                   const safeUrl = escapeUrl(item.url);
-    
-                   const MIN_REAL_PRICE = 50;
-                   let displayPrice = item.parsed_price;
-                   let priceLabel = 'Актуальная цена';
-                if (!displayPrice || displayPrice < MIN_REAL_PRICE) {
-                     displayPrice = item.original_price;
-                     priceLabel = 'Цена при загрузке (запасная)';
-                    }
-
-               html += `
-               <div class="card">
-               <div><strong>${safePart}</strong></div>
-               <div>${safeCar} | ${safeCat}</div>
-               <div class="price">
-                  ${displayPrice ? displayPrice + ' ₽' : 'Цена неизвестна'}
-                  <small style="display:block;font-size:0.7rem;color:#888;">${priceLabel}</small>
-                  ${item.price_updated_at ? `<small style="display:block;font-size:0.7rem;color:#888;">Обновлено: ${new Date(item.price_updated_at).toLocaleString()}</small>` : ''}
-               </div>
-               <div>${safeVendor}</div>
-               <a href="${safeUrl}" class="url" target="_blank">Перейти</a>
-               <a href="/instructions/${item.car_id}" class="url">📖 Инструкции</a>
-            </div>
-        `;
-    }
-    resultsDiv.innerHTML = html;
-} else {
-    resultsDiv.innerHTML = `<div class="no-results">Ничего не найдено для "${escapeHtml(query)}"</div>`;
-}
-            } catch (err) {
-                console.error(err);
-                resultsDiv.innerHTML = '<div class="no-results">Ошибка при поиске</div>';
-            }
-        }
+        let currentQuery = '';
+        let currentCategory = '';
+        let currentPage = 1;
+        const pageLimit = 20;
+        let totalPages = 0;
 
         function escapeHtml(str) {
             if (!str) return '';
@@ -118,6 +77,7 @@
                 return m;
             });
         }
+
         function escapeUrl(url) {
             if (!url) return '#';
             try {
@@ -125,6 +85,83 @@
                 if (u.protocol !== 'http:' && u.protocol !== 'https:') return '#';
                 return url;
             } catch(e) { return '#'; }
+        }
+
+        async function search(page = 1) {
+            const resultsDiv = document.getElementById('results');
+            currentQuery = searchInput.value.trim();
+            currentCategory = document.getElementById('categorySelect').value;
+            currentPage = page;
+
+            if (currentQuery.length < 2) {
+                resultsDiv.innerHTML = '<div class="no-results">Введите хотя бы 2 символа</div>';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+            resultsDiv.innerHTML = '<div class="no-results">Поиск...</div>';
+
+            try {
+                const response = await fetch(`/api/search/ai?q=${encodeURIComponent(currentQuery)}&category=${encodeURIComponent(currentCategory)}&page=${page}&limit=${pageLimit}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const results = data.results || [];
+                totalPages = data.total_pages || 0;
+
+                if (results.length > 0) {
+                    let html = `<p>Найдено ${data.count} результатов, страница ${page} из ${totalPages}</p>`;
+                    for (const item of results) {
+                        const safePart = escapeHtml(item.part_name);
+                        const safeCar = escapeHtml(item.car_name);
+                        const safeCat = escapeHtml(item.category);
+                        const safeVendor = escapeHtml(item.vendor);
+                        const safeUrl = escapeUrl(item.url);
+
+                        const MIN_REAL_PRICE = 50;
+                        let displayPrice = item.parsed_price;
+                        let priceLabel = 'Актуальная цена';
+                        if (!displayPrice || displayPrice < MIN_REAL_PRICE) {
+                            displayPrice = item.original_price;
+                            priceLabel = 'Цена при загрузке (запасная)';
+                        }
+
+                        html += `
+                            <div class="card">
+                                <div><strong>${safePart}</strong></div>
+                                <div>${safeCar} | ${safeCat}</div>
+                                <div class="price">
+                                    ${displayPrice ? displayPrice + ' ₽' : 'Цена неизвестна'}
+                                    <small style="display:block;font-size:0.7rem;color:#888;">${priceLabel}</small>
+                                    ${item.price_updated_at ? `<small style="display:block;font-size:0.7rem;color:#888;">Обновлено: ${new Date(item.price_updated_at).toLocaleString()}</small>` : ''}
+                                </div>
+                                <div>${safeVendor}</div>
+                                <a href="${safeUrl}" class="url" target="_blank">Перейти</a>
+                                <a href="/instructions/${item.car_id}" class="url">📖 Инструкции</a>
+                            </div>
+                        `;
+                    }
+                    resultsDiv.innerHTML = html;
+
+                    const pagination = document.getElementById('pagination');
+                    pagination.style.display = 'block';
+                    document.getElementById('pageInfo').textContent = `Страница ${page} из ${totalPages}`;
+                    document.getElementById('prevPage').disabled = (page <= 1);
+                    document.getElementById('nextPage').disabled = (page >= totalPages);
+                } else {
+                    resultsDiv.innerHTML = `<div class="no-results">Ничего не найдено для "${escapeHtml(currentQuery)}"</div>`;
+                    document.getElementById('pagination').style.display = 'none';
+                }
+            } catch (err) {
+                console.error(err);
+                resultsDiv.innerHTML = '<div class="no-results">Ошибка при поиске</div>';
+                document.getElementById('pagination').style.display = 'none';
+            }
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage < 1 || newPage > totalPages) return;
+            search(newPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
 </body>

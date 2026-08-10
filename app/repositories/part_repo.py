@@ -26,11 +26,11 @@ def get_all_parts_with_links():
     conn.close()
     return parts
 
-def search_by_sql_like(query: str, limit: int = 20):
+def search_by_sql_like(query: str, limit: int = None):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     search_term = f"%{query}%"
-    cursor.execute("""
+    sql = """
         SELECT 
             p.id as part_id,
             c.id as car_id,
@@ -50,8 +50,12 @@ def search_by_sql_like(query: str, limit: int = 20):
            OR LOWER(c.brand) LIKE LOWER(%s) 
            OR LOWER(c.model) LIKE LOWER(%s))
           AND pl.is_active = 1
-        LIMIT %s
-    """, (search_term, search_term, search_term, limit))
+    """
+    params = [search_term, search_term, search_term]
+    if limit is not None:
+        sql += " LIMIT %s"
+        params.append(limit)
+    cursor.execute(sql, params)
     results = cursor.fetchall()
     cursor.close()
     conn.close()
