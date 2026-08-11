@@ -20,7 +20,7 @@
         <div class="card">
             <h3>{{ inst.title }}</h3>
             <p>{{ inst.description or "Пошаговое руководство" }}</p>
-            <a href="{{ inst.file_path }}" class="btn" target="_blank">Скачать PDF</a>
+            <a href="/api/instructions/download/{{ inst.id }}" class="btn" target="_blank">Скачать PDF инструкцию</a>
         </div>
         {% else %}
         <p>Инструкции не добавлены</p>
