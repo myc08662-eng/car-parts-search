@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import logging
 import time
-from httpx import Client, Timeout, ConnectError
+import random
 import json
 
 logger = logging.getLogger(__name__)
@@ -28,25 +28,38 @@ def parse_price(url: str) -> float | None:
 
     try:
         headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                 'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
-                 #'Accept-Encoding': 'gzip, deflate, br',
-                 'Connection': 'keep-alive',
-                 'Referer': 'https://www.google.com/',
-                 'Sec-Fetch-Dest': 'document',
-                 'Sec-Fetch-Mode': 'navigate',
-                 'Sec-Fetch-Site': 'none',
-                 'Sec-Fetch-User': '?1',
-                 'Upgrade-Insecure-Requests': '1',
-                }
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+            #'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Referer': 'https://www.google.com/',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+        }
         max_retries = 3
         response = None
         for attempt in range(max_retries):
             try:
+                time.sleep(random.uniform(0.5, 1.5))
                 with httpx.Client(timeout=15.0, follow_redirects=True) as client:
                     response = client.get(url, headers=headers)
-                break
+                
+                if response.status_code != 200:
+                    logger.warning(f"Статус {response.status_code} для {url}, повторная попытка")
+                    continue
+                
+                # Проверка на капчу
+                if response.text:
+                    text_lower = response.text.lower()
+                    if 'g-recaptcha' in text_lower or 'data-sitekey' in text_lower or 'hcaptcha' in text_lower:
+                        logger.warning(f"Страница {url} содержит признаки капчи, пропускаем")
+                        return None
+                
+                break  
             except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadTimeout) as e:
                 if attempt == max_retries - 1:
                     logger.error(f"Не удалось загрузить страницу после {max_retries} попыток: {url} – {e}")
@@ -61,6 +74,7 @@ def parse_price(url: str) -> float | None:
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
+        # Парсинг JSON-LD
         json_ld = soup.select_one('script[type="application/ld+json"]')
         if json_ld:
             try:
@@ -74,7 +88,6 @@ def parse_price(url: str) -> float | None:
                                 return round(price, 2)
                         except (ValueError, TypeError):
                             pass
-                # Если offers список перебираем
                 elif 'offers' in data and isinstance(data['offers'], list):
                     for offer in data['offers']:
                         if 'price' in offer:
@@ -87,7 +100,7 @@ def parse_price(url: str) -> float | None:
             except (json.JSONDecodeError, AttributeError, KeyError):
                 pass
 
-        # Отдельная проверка для tachka.ru
+        # Специальная проверка для tachka.ru
         buy_box = soup.select_one('[data-buy-box]')
         if buy_box and buy_box.get('data-price'):
             price_text = buy_box['data-price']
