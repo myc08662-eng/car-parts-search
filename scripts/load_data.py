@@ -22,12 +22,20 @@ def get_or_create_category(cursor, name):
 
 def get_or_create_car(cursor, car_str):
     parts = car_str.split()
-    if len(parts) < 2:
+    if len(parts) < 1:
         logger.error(f"Некорректное название автомобиля: {car_str}")
         return None
     brand = parts[0]
-    model = parts[1]
-    generation = parts[2] if len(parts) > 2 else None
+    if len(parts) >= 2:
+        model = parts[1]
+    else:
+        model = ""
+        logger.warning(f"Название автомобиля '{car_str}' не содержит модели, будет создана модель ''")
+    if len(parts) >= 3:
+        generation = " ".join(parts[2:])
+    else:
+        generation = None
+
     cursor.execute(
         "SELECT id FROM cars WHERE brand = %s AND model = %s AND (generation = %s OR (generation IS NULL AND %s IS NULL))",
         (brand, model, generation, generation)
@@ -35,6 +43,7 @@ def get_or_create_car(cursor, car_str):
     row = cursor.fetchone()
     if row:
         return row[0]
+
     cursor.execute(
         "INSERT INTO cars (brand, model, generation) VALUES (%s, %s, %s)",
         (brand, model, generation)
