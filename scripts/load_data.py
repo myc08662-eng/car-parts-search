@@ -29,8 +29,8 @@ def get_or_create_car(cursor, car_str):
     if len(parts) >= 2:
         model = parts[1]
     else:
-        model = ""
-        logger.warning(f"Название автомобиля '{car_str}' не содержит модели, будет создана модель ''")
+        model = "Unknown"
+        logger.warning(f"Название автомобиля '{car_str}' не содержит модели, установлено 'Unknown'")
     if len(parts) >= 3:
         generation = " ".join(parts[2:])
     else:
@@ -43,7 +43,6 @@ def get_or_create_car(cursor, car_str):
     row = cursor.fetchone()
     if row:
         return row[0]
-
     cursor.execute(
         "INSERT INTO cars (brand, model, generation) VALUES (%s, %s, %s)",
         (brand, model, generation)
