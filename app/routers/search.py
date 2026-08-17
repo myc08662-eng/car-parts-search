@@ -8,7 +8,7 @@ settings = get_settings()
 
 @router.get("/ai")
 async def ai_search(q: str = "", category: str = "", page: int = 1, limit: int = 20):
-    if len(q) < settings.SEARCH_MIN_QUERY_LEN:
+    if len(q) < settings.SEARCH_MIN_QUERY_LEN or len(q) > settings.SEARCH_MAX_QUERY_LEN:
         return {"results": [], "count": 0, "page": page, "limit": limit, "total_pages": 0}
     
     if not search_service.search_engine.is_fitted:
@@ -48,7 +48,7 @@ async def ai_search(q: str = "", category: str = "", page: int = 1, limit: int =
 
 @router.get("")
 async def simple_search(q: str = "", page: int = 1, limit: int = 20):
-    if len(q) < settings.SEARCH_MIN_QUERY_LEN:
+    if len(q) < settings.SEARCH_MIN_QUERY_LEN or len(q) > settings.SEARCH_MAX_QUERY_LEN:
         return {"results": [], "count": 0, "page": page, "limit": limit, "total_pages": 0}
     
     if not search_service.search_engine.is_fitted:
