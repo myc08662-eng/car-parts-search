@@ -65,7 +65,7 @@ def insert_or_update_part_link(cursor, part_id, car_id, url, price, vendor):
     row = cursor.fetchone()
     if row:
         cursor.execute(
-            "UPDATE part_links SET url = %s, price = %s, vendor = %s, is_active = 1 WHERE id = %s",
+            "UPDATE part_links SET url = %s, price = %s, vendor = %s, is_active = 1, updated_at = NOW() WHERE id = %s",
             (url, price, vendor, row[0])
         )
         return row[0]
@@ -95,8 +95,11 @@ def load_data():
     )
     cursor = conn.cursor()
     total = 0
-    for item in items:
+    for idx, item in enumerate(items, start=1):
+        savepoint_name = f"sp_{idx}"
         try:
+            cursor.execute(f"SAVEPOINT {savepoint_name}")
+            
             car_str = item["car"]
             category_name = item["category"]
             part_name = item["part_name"]
@@ -107,14 +110,19 @@ def load_data():
             category_id = get_or_create_category(cursor, category_name)
             car_id = get_or_create_car(cursor, car_str)
             if not car_id:
+                cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}")
+                cursor.execute(f"RELEASE SAVEPOINT {savepoint_name}")
                 continue
             part_id = get_or_create_part(cursor, part_name, category_id)
             link_id = insert_or_update_part_link(cursor, part_id, car_id, url, price, vendor)
+            
+            cursor.execute(f"RELEASE SAVEPOINT {savepoint_name}")
             total += 1
             logger.info(f"Обработано: {part_name} | {car_str} | {price} руб.")
         except Exception as e:
+            cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint_name}")
+            cursor.execute(f"RELEASE SAVEPOINT {savepoint_name}")
             logger.error(f"Ошибка при обработке {item}: {e}")
-            conn.rollback()
             continue
 
     conn.commit()
