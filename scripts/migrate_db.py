@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import mysql.connector
 from app.config import get_settings
 import logging
@@ -36,17 +40,47 @@ def run_migration():
         cursor.execute("ALTER TABLE part_links ADD UNIQUE KEY unique_part_car_url (part_id, car_id, url)")
         logger.info("Добавлен уникальный ключ в part_links")
     except mysql.connector.Error as e:
-        if "Duplicate entry" in str(e):
-            logger.warning("Уникальный ключ уже существует или есть дубли – пропускаем")
+        if e.errno == 1061:  
+            logger.info("Уникальный ключ unique_part_car_url уже существует")
         else:
             raise
     
     try:
-        cursor.execute("ALTER TABLE cars ADD UNIQUE KEY unique_car (brand, model, generation)")
-        logger.info("Добавлен уникальный ключ в cars")
-    except Exception as e:
-        logger.warning(f"Не удалось добавить уникальность cars: {e}")
-    
+       cursor.execute("ALTER TABLE cars ADD UNIQUE KEY unique_car (brand, model, generation)")
+       logger.info("Добавлен уникальный ключ в cars")
+    except mysql.connector.Error as e:
+        if e.errno == 1061:
+            logger.info("Уникальный ключ unique_car уже существует")
+        else:
+            raise
+
+    try:
+        cursor.execute("CREATE INDEX idx_parts_name ON parts(name)")
+        logger.info("Индекс idx_parts_name создан")
+    except mysql.connector.Error as e:
+        if e.errno == 1061:
+            logger.info("Индекс idx_parts_name уже существует")
+        else:
+            raise
+
+    try:
+        cursor.execute("CREATE INDEX idx_cars_brand ON cars(brand)")
+        logger.info("Индекс idx_cars_brand создан")
+    except mysql.connector.Error as e:
+        if e.errno == 1061:
+            logger.info("Индекс idx_cars_brand уже существует")
+        else:
+            raise
+
+    try:
+        cursor.execute("CREATE INDEX idx_cars_model ON cars(model)")
+        logger.info("Индекс idx_cars_model создан")
+    except mysql.connector.Error as e:
+        if e.errno == 1061:
+            logger.info("Индекс idx_cars_model уже существует")
+        else:
+            raise
+
     conn.commit()
     cursor.close()
     conn.close()
