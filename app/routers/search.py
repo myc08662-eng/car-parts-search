@@ -12,13 +12,10 @@ async def ai_search(q: str = "", category: str = "", page: int = 1, limit: int =
         return {"results": [], "count": 0, "page": page, "limit": limit, "total_pages": 0}
     
     if not search_service.search_engine.is_fitted:
-        results = part_repo.search_by_sql_like(q)
-        if category:
-            results = [r for r in results if r.get('category', '').lower() == category.lower()]
-        total = len(results)
-        start = (page - 1) * limit
-        end = start + limit
-        paginated = results[start:end]
+        offset = (page - 1) * limit
+        total = part_repo.count_search_results(q, category if category else None)
+        results = part_repo.search_by_sql_like(q, category if category else None, offset=offset, limit=limit)
+        paginated = results
         return {
             "results": paginated,
             "count": total,
@@ -30,7 +27,7 @@ async def ai_search(q: str = "", category: str = "", page: int = 1, limit: int =
             "category": category or "все"
         }
     
-    top_k_needed = limit * page + limit  
+    top_k_needed = limit * page + limit
     all_results = search_service.search_parts(q, category if category else None, top_k=top_k_needed)
     total = len(all_results)
     start = (page - 1) * limit
@@ -52,11 +49,10 @@ async def simple_search(q: str = "", page: int = 1, limit: int = 20):
         return {"results": [], "count": 0, "page": page, "limit": limit, "total_pages": 0}
     
     if not search_service.search_engine.is_fitted:
-        results = part_repo.search_by_sql_like(q)  # без limit
-        total = len(results)
-        start = (page - 1) * limit
-        end = start + limit
-        paginated = results[start:end]
+        offset = (page - 1) * limit
+        total = part_repo.count_search_results(q)
+        results = part_repo.search_by_sql_like(q, offset=offset, limit=limit)
+        paginated = results
         return {
             "results": paginated,
             "count": total,
@@ -75,7 +71,7 @@ async def simple_search(q: str = "", page: int = 1, limit: int = 20):
     return {
         "results": paginated,
         "count": total,
-        "page": page,
+        "page": page,   
         "limit": limit,
         "total_pages": (total + limit - 1) // limit
     }
