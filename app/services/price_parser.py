@@ -6,15 +6,12 @@ import logging
 import time
 import random
 import json
+from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-ALLOWED_DOMAINS = {
-    'ozon.ru', 'tachka.ru', 'trialli.ru', 'shop.polosedan.ru',
-    'mobiland.auto', 'amag.ru', 'startvolt.com', 'baza.drom.ru',
-    'v-avto.ru', 'autone.ru', 'koleso.ru', 'zapkorea.ru',
-    'luzar.ru', 'carvilleshop.ru', 'ruli.ru', 'cars.marshall.parts'
-}
+settings = get_settings()
+settings.ALLOWED_DOMAINS
 
 def parse_price(url: str) -> float | None:
     parsed_url = urlparse(url)
@@ -22,16 +19,15 @@ def parse_price(url: str) -> float | None:
     if domain.startswith('www.'):
         domain = domain[4:]
     
-    if not any(domain.endswith(allowed) for allowed in ALLOWED_DOMAINS):
+    if not any(domain.endswith(allowed) for allowed in settings.ALLOWED_DOMAINS):
         logger.warning(f"Домен {domain} не в белом списке")
         return None
 
     try:
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'User-Agent': random.choice(settings.USER_AGENTS),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
-            #'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Referer': 'https://www.google.com/',
             'Sec-Fetch-Dest': 'document',
