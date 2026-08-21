@@ -6,7 +6,7 @@ import logging
 import os
 from app.config import get_settings
 from app.templating import templates
-from app.routers import search, instructions, categories
+from app.routers import search, instructions, categories, feedback
 from app.services import search_service
 from app.repositories import part_repo
 
@@ -39,19 +39,19 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Car Parts Search v2", lifespan=lifespan)
 
-# Статика
-static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")  # Статика
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# Роутеры
 app.include_router(search.router)
 app.include_router(instructions.router)
 app.include_router(categories.router)
+app.include_router(feedback.router)
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)      # Корневой маршрут
 async def home(request: Request):
-    return templates.TemplateResponse(request, "index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request})
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

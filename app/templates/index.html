@@ -136,6 +136,10 @@
                                 <div>${safeVendor}</div>
                                 <a href="${safeUrl}" class="url" target="_blank">Перейти</a>
                                 <a href="/instructions/${item.car_id}" class="url">Инструкции</a>
+                                <div style="margin-top: 10px;">
+                                     <button class="feedback-btn" data-rating="1" data-query="${currentQuery}" data-category="${currentCategory}" data-page="${currentPage}" data-count="${data.count}">👍 Полезно</button>
+                                     <button class="feedback-btn" data-rating="0" data-query="${currentQuery}" data-category="${currentCategory}" data-page="${currentPage}" data-count="${data.count}">👎 Бесполезно</button>
+                               </div>
                             </div>
                         `;
                     }
@@ -163,6 +167,41 @@
             search(newPage);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+        document.addEventListener('click', async function(e) {
+    const btn = e.target.closest('.feedback-btn');
+    if (!btn) return;
+    
+    const rating = parseInt(btn.dataset.rating);
+    const query = btn.dataset.query;
+    const category = btn.dataset.category || '';
+    const page = parseInt(btn.dataset.page) || 1;
+    const resultsCount = parseInt(btn.dataset.count) || 0;
+    
+    try {
+        const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: query,
+                category: category,
+                page: page,
+                page_limit: pageLimit,   
+                rating: rating,
+                results_count: resultsCount
+            })
+        });
+        if (response.ok) {
+            alert('Спасибо за оценку!');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        } else {
+            alert('Ошибка при отправке');
+        }
+    } catch (e) {
+        console.error('Ошибка:', e);
+        alert('Ошибка сети');
+    }
+});
     </script>
 </body>
 </html>
