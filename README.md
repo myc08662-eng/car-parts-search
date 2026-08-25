@@ -37,7 +37,6 @@ car-parts-search/
 ├── tests/ # Модульные, интеграционные и API‑тесты
 └── requirements.txt # Зависимости Python
 
-text
 
 ---
 
